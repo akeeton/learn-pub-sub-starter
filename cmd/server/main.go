@@ -3,28 +3,29 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/common"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
-	const connectionString = "amqp://guest:guest@localhost:5672/"
+	fmt.Println("Starting Peril server...")
 
-	conn, err := amqp.Dial(connectionString)
+	const rabbitConnString = "amqp://guest:guest@localhost:5672/"
+
+	conn, err := amqp.Dial(rabbitConnString)
 	if err != nil {
 		log.Fatal("Error connecting to RabbitMQ:", err)
 	}
 	defer conn.Close()
 
-	fmt.Println("Connected to RabbitMQ")
+	fmt.Println("Peril game server connected to RabbitMQ")
 
 	publishCh, err := conn.Channel()
 	if err != nil {
-		log.Fatal("Error creating RabbitMQ channel:", err)
+		log.Fatal("Error creating channel:", err)
 	}
 
 	err = pubsub.PublishJSON(
@@ -41,10 +42,6 @@ func main() {
 
 	fmt.Println("Pause message sent!")
 
-	// Wait for Ctrl+C
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt)
-	<-signalCh
-	fmt.Println("Received Ctrl+C, shutting down connection to RabbitMQ")
-	conn.Close()
+	common.WaitForCtrlC()
+	fmt.Println("Received Ctrl+C, shutting down server")
 }
