@@ -21,6 +21,18 @@ func main() {
 	}
 	defer conn.Close()
 
+	_, logsQueue, err := pubsub.DeclareAndBind(
+		conn,
+		routing.ExchangePerilTopic,
+		"game_logs",
+		"game_logs.*",
+		pubsub.SimpleQueueDurable,
+	)
+	if err != nil {
+		log.Fatal("Error declaring and binding queue:", err)
+	}
+	fmt.Printf("Queue %v declared and bound!\n", logsQueue.Name)
+
 	publishCh, err := conn.Channel()
 	if err != nil {
 		log.Fatal("Error creating channel:", err)
