@@ -29,18 +29,19 @@ func main() {
 	fmt.Println("Peril game server connected to RabbitMQ")
 	gamelogic.PrintServerHelp()
 
+	// Infinite REPL loop
 	for {
-		input := gamelogic.GetInput()
+		words := gamelogic.GetInput()
 
-		if len(input) < 1 {
+		if len(words) < 1 {
 			continue
 		}
 
-		switch input[0] {
+		switch words[0] {
 		case "pause":
-			sendPauseMessage(publishCh, true)
+			handlePause(publishCh)
 		case "resume":
-			sendPauseMessage(publishCh, false)
+			handleResume(publishCh)
 		case "quit":
 			fmt.Println("Exiting server")
 			return
@@ -48,6 +49,14 @@ func main() {
 			fmt.Println("Unknown command")
 		}
 	}
+}
+
+func handlePause(publishCh *amqp.Channel) {
+	sendPauseMessage(publishCh, true)
+}
+
+func handleResume(publishCh *amqp.Channel) {
+	sendPauseMessage(publishCh, false)
 }
 
 func sendPauseMessage(publishCh *amqp.Channel, isPaused bool) {
