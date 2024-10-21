@@ -27,6 +27,11 @@ func main() {
 		log.Fatal("Error declaring Peril exchanges:", err)
 	}
 
+	publishCh, err := conn.Channel()
+	if err != nil {
+		log.Fatal("Error creating channel:", err)
+	}
+
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		log.Fatal("Error welcoming client:", err)
@@ -46,6 +51,18 @@ func main() {
 		log.Fatal("Error subscribing to pause queue:", err)
 	}
 
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.ArmyMovesPrefix+"."+gs.GetUsername(),
+		routing.ArmyMovesPrefix+".*",
+		pubsub.SimpleQueueTransient,
+		handlerMove(gs),
+	)
+	if err != nil {
+		log.Fatal("Error subscribing to army_move queue:", err)
+	}
+
 	// Infinite REPL loop
 	for {
 		words := gamelogic.GetInput()
@@ -58,7 +75,7 @@ func main() {
 		case "spawn":
 			handleSpawn(gs, words)
 		case "move":
-			handleMove(gs, words)
+			handleMove(gs, publishCh, words)
 		case "status":
 			handleStatus(gs)
 		case "help":
@@ -83,11 +100,23 @@ func handleSpawn(gs *gamelogic.GameState, words []string) {
 	}
 }
 
-func handleMove(gs *gamelogic.GameState, words []string) {
-	_, err := gs.CommandMove(words)
+func handleMove(gs *gamelogic.GameState, publishCh *amqp.Channel, words []string) {
+	mv, err := gs.CommandMove(words)
 	if err != nil {
 		fmt.Println("Error moving:", err)
 	}
+
+	err = pubsub.PublishJSON(
+		publishCh,
+		routing.ExchangePerilTopic,
+		routing.ArmyMovesPrefix+"."+gs.GetUsername(),
+		mv,
+	)
+	if err != nil {
+		log.Println("Error publishing move message:", err)
+	}
+
+	fmt.Println("Move published successfully")
 }
 
 func handleStatus(gs *gamelogic.GameState) {
