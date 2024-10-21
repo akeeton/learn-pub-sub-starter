@@ -22,6 +22,11 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Peril game client connected to RabbitMQ")
 
+	err = pubsub.DeclarePerilExchanges(conn)
+	if err != nil {
+		log.Fatal("Error declaring Peril exchanges:", err)
+	}
+
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		log.Fatal("Error welcoming client:", err)

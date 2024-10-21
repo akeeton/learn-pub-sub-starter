@@ -20,6 +20,12 @@ func main() {
 		log.Fatal("Error connecting to RabbitMQ:", err)
 	}
 	defer conn.Close()
+	fmt.Println("Peril game server connected to RabbitMQ")
+
+	err = pubsub.DeclarePerilExchanges(conn)
+	if err != nil {
+		log.Fatal("Error declaring Peril exchanges:", err)
+	}
 
 	_, logsQueue, err := pubsub.DeclareAndBind(
 		conn,
@@ -38,7 +44,6 @@ func main() {
 		log.Fatal("Error creating channel:", err)
 	}
 
-	fmt.Println("Peril game server connected to RabbitMQ")
 	gamelogic.PrintServerHelp()
 
 	// Infinite REPL loop
