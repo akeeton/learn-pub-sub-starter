@@ -27,19 +27,19 @@ func main() {
 		log.Fatal("Error welcoming client:", err)
 	}
 
-	_, queue, err := pubsub.DeclareAndBind(
+	gs := gamelogic.NewGameState(username)
+
+	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
-		fmt.Sprintf("%s.%s", routing.PauseKey, username),
+		routing.PauseKey+"."+gs.GetUsername(),
 		routing.PauseKey,
 		pubsub.SimpleQueueTransient,
+		handlerPause(gs),
 	)
 	if err != nil {
-		log.Fatal("Error declaring and binding queue:", err)
+		log.Fatal("Error subscribing to pause queue:", err)
 	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
-
-	gameState := gamelogic.NewGameState(username)
 
 	// Infinite REPL loop
 	for {
@@ -51,16 +51,18 @@ func main() {
 
 		switch words[0] {
 		case "spawn":
-			handleSpawn(gameState, words)
+			handleSpawn(gs, words)
 		case "move":
-			handleMove(gameState, words)
+			handleMove(gs, words)
 		case "status":
-			handleStatus(gameState)
+			handleStatus(gs)
 		case "help":
 			handleHelp()
 		case "spam":
 			handleSpam()
 		case "quit":
+			fallthrough
+		case "q":
 			gamelogic.PrintQuit()
 			return
 		default:
@@ -69,22 +71,22 @@ func main() {
 	}
 }
 
-func handleSpawn(gameState *gamelogic.GameState, words []string) {
-	err := gameState.CommandSpawn(words)
+func handleSpawn(gs *gamelogic.GameState, words []string) {
+	err := gs.CommandSpawn(words)
 	if err != nil {
 		fmt.Println("Error spawning unit:", err)
 	}
 }
 
-func handleMove(gameState *gamelogic.GameState, words []string) {
-	_, err := gameState.CommandMove(words)
+func handleMove(gs *gamelogic.GameState, words []string) {
+	_, err := gs.CommandMove(words)
 	if err != nil {
 		fmt.Println("Error moving:", err)
 	}
 }
 
-func handleStatus(gameState *gamelogic.GameState) {
-	gameState.CommandStatus()
+func handleStatus(gs *gamelogic.GameState) {
+	gs.CommandStatus()
 }
 
 func handleHelp() {

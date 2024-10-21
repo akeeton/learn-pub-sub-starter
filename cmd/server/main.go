@@ -55,6 +55,8 @@ func main() {
 		case "resume":
 			handleResume(publishCh)
 		case "quit":
+			fallthrough
+		case "q":
 			fmt.Println("Exiting server")
 			return
 		default:
