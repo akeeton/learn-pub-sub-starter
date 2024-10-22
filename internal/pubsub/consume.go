@@ -53,14 +53,14 @@ func SubscribeJSON[T any](
 
 			switch handler(val) {
 			case Ack:
-				log.Println("Ack")
 				delivery.Ack(false)
-			case NackRequeue:
-				log.Println("NackRequeue")
-				delivery.Nack(false, true)
+				log.Println("Ack")
 			case NackDiscard:
-				log.Println("NackDiscard")
 				delivery.Nack(false, false)
+				log.Println("NackDiscard")
+			case NackRequeue:
+				delivery.Nack(false, true)
+				log.Println("NackRequeue")
 			default:
 				log.Println("Handler returned invalid Acktype")
 			}
@@ -92,7 +92,9 @@ func DeclareAndBind(
 		autoDelete,
 		exclusive,
 		noWait,
-		nil,
+		amqp.Table{
+			"x-dead-letter-exchange": "peril_dlx",
+		},
 	)
 	if err != nil {
 		return nil, amqp.Queue{}, fmt.Errorf("error declaring queue: %w", err)
