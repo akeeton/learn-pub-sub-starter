@@ -10,6 +10,12 @@ import (
 
 type Acktype int
 
+const (
+	Ack Acktype = iota
+	NackRequeue
+	NackDiscard
+)
+
 type SimpleQueueType int
 
 const (
@@ -23,7 +29,7 @@ func SubscribeJSON[T any](
 	queueName,
 	key string,
 	simpleQueueType SimpleQueueType,
-	handler func(T),
+	handler func(T) Acktype,
 ) error {
 	ch, queue, err := DeclareAndBind(conn, exchange, queueName, key, simpleQueueType)
 	if err != nil {
@@ -45,11 +51,18 @@ func SubscribeJSON[T any](
 				continue
 			}
 
-			handler(val)
-
-			if err := delivery.Ack(false); err != nil {
-				log.Println("Error acking delivery:", err)
-				continue
+			switch handler(val) {
+			case Ack:
+				log.Println("Ack")
+				delivery.Ack(false)
+			case NackRequeue:
+				log.Println("NackRequeue")
+				delivery.Nack(false, true)
+			case NackDiscard:
+				log.Println("NackDiscard")
+				delivery.Nack(false, false)
+			default:
+				log.Println("Handler returned invalid Acktype")
 			}
 		}
 	}()
