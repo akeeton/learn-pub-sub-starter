@@ -19,3 +19,10 @@ https://www.boot.dev/lessons/1a81f164-aa4f-4f66-a481-fac6a99e1eba
   - Name: peril_dlq
   - Binding: peril_dlx
   - Key: none
+
+# 6-2
+https://www.boot.dev/lessons/275899a4-5787-4297-8507-5685789a5517
+- Add queue
+  - Name: game_logs
+  - Binding: peril_topic
+  - Key: game_logs.*
