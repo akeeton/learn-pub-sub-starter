@@ -46,7 +46,7 @@ func handlerMove(
 				return pubsub.NackRequeue
 			}
 
-			return pubsub.NackRequeue
+			return pubsub.Ack
 		default:
 			log.Println("HandleMove returned unknown move outcome")
 			return pubsub.NackDiscard
