@@ -7,7 +7,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func DeclareCommonExchangesAndQueues(conn *amqp.Connection) error {
+func DeclareAndBindCommonExchangesAndQueues(conn *amqp.Connection) error {
 	ch, err := conn.Channel()
 	if err != nil {
 		return fmt.Errorf("error creating channel: %w", err)
@@ -27,8 +27,8 @@ func DeclareCommonExchangesAndQueues(conn *amqp.Connection) error {
 	_, _, err = DeclareAndBind(
 		conn,
 		routing.ExchangePerilTopic,
-		"game_logs",
-		"game_logs.*",
+		routing.GameLogSlug,
+		routing.GameLogSlug+".*",
 		SimpleQueueDurable,
 	)
 	if err != nil {

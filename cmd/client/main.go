@@ -22,7 +22,7 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Peril game client connected to RabbitMQ")
 
-	err = pubsub.DeclareCommonExchangesAndQueues(conn)
+	err = pubsub.DeclareAndBindCommonExchangesAndQueues(conn)
 	if err != nil {
 		log.Fatalln("Error declaring common exchanges and queues:", err)
 	}

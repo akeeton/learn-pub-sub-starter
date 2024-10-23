@@ -22,9 +22,21 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Peril game server connected to RabbitMQ")
 
-	err = pubsub.DeclareCommonExchangesAndQueues(conn)
+	err = pubsub.DeclareAndBindCommonExchangesAndQueues(conn)
 	if err != nil {
 		log.Fatalln("Error declaring common exchanges and queues:", err)
+	}
+
+	err = pubsub.SubscribeGob(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug+".*",
+		pubsub.SimpleQueueDurable,
+		handlerLogs(),
+	)
+	if err != nil {
+		log.Fatalln("Error subscribing to war queue:", err)
 	}
 
 	publishCh, err := conn.Channel()

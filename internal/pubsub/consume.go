@@ -1,6 +1,8 @@
 package pubsub
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -31,43 +33,42 @@ func SubscribeJSON[T any](
 	simpleQueueType SimpleQueueType,
 	handler func(T) Acktype,
 ) error {
-	ch, queue, err := DeclareAndBind(conn, exchange, queueName, key, simpleQueueType)
-	if err != nil {
-		return fmt.Errorf("error declaring and binding to queue: %w", err)
-	}
-
-	deliveryCh, err := ch.Consume(queue.Name, "", false, false, false, false, nil)
-	if err != nil {
-		return fmt.Errorf("error consuming queue: %w", err)
-	}
-
-	go func() {
-		defer ch.Close()
-
-		for delivery := range deliveryCh {
+	return subscribe(
+		conn,
+		exchange,
+		queueName,
+		key,
+		simpleQueueType,
+		handler,
+		func(body []byte) (T, error) {
 			var val T
-			if err := json.Unmarshal(delivery.Body, &val); err != nil {
-				log.Println("Error unmarshalling delivery body:", err)
-				continue
-			}
+			err := json.Unmarshal(body, &val)
+			return val, err
+		},
+	)
+}
 
-			switch handler(val) {
-			case Ack:
-				delivery.Ack(false)
-				log.Println("Ack")
-			case NackDiscard:
-				delivery.Nack(false, false)
-				log.Println("NackDiscard")
-			case NackRequeue:
-				delivery.Nack(false, true)
-				log.Println("NackRequeue")
-			default:
-				log.Println("Handler returned invalid Acktype")
-			}
-		}
-	}()
-
-	return nil
+func SubscribeGob[T any](
+	conn *amqp.Connection,
+	exchange,
+	queueName,
+	key string,
+	simpleQueueType SimpleQueueType,
+	handler func(T) Acktype,
+) error {
+	return subscribe(
+		conn,
+		exchange,
+		queueName,
+		key,
+		simpleQueueType,
+		handler,
+		func(body []byte) (T, error) {
+			var val T
+			err := gob.NewDecoder(bytes.NewBuffer(body)).Decode(&val)
+			return val, err
+		},
+	)
 }
 
 func DeclareAndBind(
@@ -106,4 +107,52 @@ func DeclareAndBind(
 	}
 
 	return ch, queue, nil
+}
+
+func subscribe[T any](
+	conn *amqp.Connection,
+	exchange,
+	queueName,
+	key string,
+	simpleQueueType SimpleQueueType,
+	handler func(T) Acktype,
+	unmarshaller func([]byte) (T, error),
+) error {
+	ch, queue, err := DeclareAndBind(conn, exchange, queueName, key, simpleQueueType)
+	if err != nil {
+		return fmt.Errorf("error declaring and binding to queue: %w", err)
+	}
+
+	deliveryCh, err := ch.Consume(queue.Name, "", false, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("error consuming queue: %w", err)
+	}
+
+	go func() {
+		defer ch.Close()
+
+		for delivery := range deliveryCh {
+			val, err := unmarshaller(delivery.Body)
+			if err != nil {
+				log.Println("Error unmarshalling delivery body:", err)
+				continue
+			}
+
+			switch handler(val) {
+			case Ack:
+				delivery.Ack(false)
+				log.Println("Ack")
+			case NackDiscard:
+				delivery.Nack(false, false)
+				log.Println("NackDiscard")
+			case NackRequeue:
+				delivery.Nack(false, true)
+				log.Println("NackRequeue")
+			default:
+				log.Println("Handler returned invalid Acktype")
+			}
+		}
+	}()
+
+	return nil
 }
