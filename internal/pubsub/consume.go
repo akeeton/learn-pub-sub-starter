@@ -123,6 +123,11 @@ func subscribe[T any](
 		return fmt.Errorf("error declaring and binding to queue: %w", err)
 	}
 
+	err = ch.Qos(10, 0, false)
+	if err != nil {
+		return fmt.Errorf("error setting channel QOS: %w", err)
+	}
+
 	deliveryCh, err := ch.Consume(queue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("error consuming queue: %w", err)
