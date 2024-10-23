@@ -17,24 +17,24 @@ func main() {
 
 	conn, err := amqp.Dial(connectionString)
 	if err != nil {
-		log.Fatal("Error connecting to RabbitMQ:", err)
+		log.Fatalln("Error connecting to RabbitMQ:", err)
 	}
 	defer conn.Close()
 	fmt.Println("Peril game client connected to RabbitMQ")
 
-	err = pubsub.DeclarePerilExchanges(conn)
+	err = pubsub.DeclareCommonExchangesAndQueues(conn)
 	if err != nil {
-		log.Fatal("Error declaring Peril exchanges:", err)
+		log.Fatalln("Error declaring common exchanges and queues:", err)
 	}
 
 	publishCh, err := conn.Channel()
 	if err != nil {
-		log.Fatal("Error creating channel:", err)
+		log.Fatalln("Error creating channel:", err)
 	}
 
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
-		log.Fatal("Error welcoming client:", err)
+		log.Fatalln("Error welcoming client:", err)
 	}
 
 	gs := gamelogic.NewGameState(username)
@@ -48,7 +48,7 @@ func main() {
 		handlerPause(gs),
 	)
 	if err != nil {
-		log.Fatal("Error subscribing to pause queue:", err)
+		log.Fatalln("Error subscribing to pause queue:", err)
 	}
 
 	err = pubsub.SubscribeJSON(
@@ -60,7 +60,7 @@ func main() {
 		handlerMove(gs, publishCh),
 	)
 	if err != nil {
-		log.Fatal("Error subscribing to army_move queue:", err)
+		log.Fatalln("Error subscribing to army_move queue:", err)
 	}
 
 	err = pubsub.SubscribeJSON(
@@ -72,7 +72,7 @@ func main() {
 		handlerWar(gs, publishCh),
 	)
 	if err != nil {
-		log.Fatal("Error subscribing to war queue:", err)
+		log.Fatalln("Error subscribing to war queue:", err)
 	}
 
 	// Infinite REPL loop

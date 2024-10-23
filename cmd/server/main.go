@@ -17,31 +17,19 @@ func main() {
 
 	conn, err := amqp.Dial(rabbitConnString)
 	if err != nil {
-		log.Fatal("Error connecting to RabbitMQ:", err)
+		log.Fatalln("Error connecting to RabbitMQ:", err)
 	}
 	defer conn.Close()
 	fmt.Println("Peril game server connected to RabbitMQ")
 
-	err = pubsub.DeclarePerilExchanges(conn)
+	err = pubsub.DeclareCommonExchangesAndQueues(conn)
 	if err != nil {
-		log.Fatal("Error declaring Peril exchanges:", err)
+		log.Fatalln("Error declaring common exchanges and queues:", err)
 	}
-
-	_, logsQueue, err := pubsub.DeclareAndBind(
-		conn,
-		routing.ExchangePerilTopic,
-		"game_logs",
-		"game_logs.*",
-		pubsub.SimpleQueueDurable,
-	)
-	if err != nil {
-		log.Fatal("Error declaring and binding queue:", err)
-	}
-	fmt.Printf("Queue %v declared and bound!\n", logsQueue.Name)
 
 	publishCh, err := conn.Channel()
 	if err != nil {
-		log.Fatal("Error creating channel:", err)
+		log.Fatalln("Error creating channel:", err)
 	}
 
 	gamelogic.PrintServerHelp()
